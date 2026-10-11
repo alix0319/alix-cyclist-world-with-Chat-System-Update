@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101714">
+<title>Alix Cycle World V7</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+:root{
+  --bg:#101714;
+  --panel:#1b2621;
+  --panel2:#24332b;
+  --green:#6ee7a0;
+  --text:#f3fff7;
+  --muted:#a7b9ad;
+  --red:#ff7777;
+  --border:#35463c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,sans-serif
+}
+button,input{font:inherit}
+button{
+  border:0;border-radius:12px;padding:12px;
+  background:var(--green);color:#102019;font-weight:bold;
+  cursor:pointer
+}
+button:disabled{opacity:.45}
+input{
+  width:100%;padding:12px;margin:5px 0;
+  color:var(--text);background:#101914;
+  border:1px solid var(--border);border-radius:11px;
+  outline:none
+}
+header{
+  position:sticky;top:0;z-index:500;padding:15px;
+  background:#142019;border-bottom:1px solid var(--border)
+}
+.brand{font-size:20px;font-weight:900;color:var(--green)}
+.subtitle{color:var(--muted);font-size:12px;margin-top:4px}
+main{padding:14px 14px 100px;max-width:850px;margin:auto}
+.panel{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:17px;padding:15px;margin-bottom:14px
+}
+h2{font-size:21px;margin:0 0 12px}
+h3{font-size:16px;margin:10px 0}
+p{line-height:1.5}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{min-width:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{padding:14px;border-radius:13px;background:var(--panel2)}
+.stat strong{display:block;font-size:22px;color:var(--green)}
+.stat span{font-size:12px;color:var(--muted)}
+.hidden{display:none!important}
+.page{display:none}
+.page.active{display:block}
+nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:1000;
+  display:flex;overflow-x:auto;gap:6px;padding:9px;
+  background:#142019;border-top:1px solid var(--border)
+}
+nav button{
+  min-width:75px;flex:1;padding:10px 8px;
+  font-size:11px;background:var(--panel2);
+  color:var(--text);white-space:nowrap
+}
+nav button.active{background:var(--green);color:#102019}
+#map{height:330px;border-radius:13px;z-index:1}
+.btn2{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+.danger{background:#532a2a;color:white}
+.success{color:var(--green)}
+.error{color:var(--red)}
+.item{
+  background:var(--panel2);border-radius:12px;
+  padding:12px;margin:8px 0;overflow-wrap:anywhere
+}
+.item .row{justify-content:space-between}
+.item button{padding:9px;font-size:12px}
+#messages{
+  height:300px;overflow-y:auto;padding:8px;
+  background:#101914;border-radius:12px
+}
+.msg{
+  background:var(--panel2);border-radius:12px;
+  padding:10px;margin:8px 0;max-width:88%;overflow-wrap:anywhere
+}
+.msg.mine{margin-left:auto;background:#24573a}
+.msg small{display:block;color:#c3d8ca;font-size:11px;margin-bottom:4px}
+#chatComposer{display:flex;gap:7px;align-items:center;margin-top:8px}
+#chatComposer input{flex:1;min-width:0}
+.badge{
+  display:inline-block;background:#2a4735;color:var(--green);
+  padding:7px 10px;border-radius:20px;margin:4px;font-size:12px
+}
+label{display:block;margin:10px 0 5px}
+hr{border-color:var(--border)}
+a{color:var(--green)}
+/* SEPARATE AUTH SCREENS */
+.auth-wrap{max-width:420px;margin:18px auto}
+.auth-logo{text-align:center;font-size:46px;margin:8px 0}
+.auth-heading{text-align:center;font-size:25px;font-weight:900;margin-bottom:5px}
+.auth-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:20px}
+.auth-card{
+  background:linear-gradient(160deg,#1d2d24,#151e19);
+  border:1px solid var(--border);border-radius:22px;padding:22px;
+  box-shadow:0 12px 35px #0004
+}
+.auth-card button{width:100%;margin-top:10px}
+.auth-switch{
+  margin-top:17px;text-align:center;color:var(--muted);font-size:13px
+}
+.auth-switch button{
+  width:auto;background:transparent;color:var(--green);
+  padding:5px;margin:0
+}
+.auth-message{font-size:13px;overflow-wrap:anywhere;margin-top:10px}
+@media(min-width:650px){
+  main{padding-top:20px}
+  #map{height:420px}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="brand">🚴 ALIX CYCLE WORLD <span style="font-size:12px">V7</span></div>
+  <div class="subtitle" id="topStatus">Your cycling companion</div>
+</header>
+
+<main>
+
+<!-- HOME -->
+<section class="page active" id="home">
+  <div class="panel">
+    <h2>Welcome, Cyclist! 🚴</h2>
+    <p class="muted">Track your ride, explore routes, check the weather, and connect with other cyclists.</p>
+    <div class="grid">
+      <div class="stat"><strong id="homeDistance">0.00</strong><span>KM THIS RIDE</span></div>
+      <div class="stat"><strong id="homeTime">00:00</strong><span>RIDE TIME</span></div>
+      <div class="stat"><strong id="homeRides">0</strong><span>FINISHED RIDES</span></div>
+      <div class="stat"><strong id="homeTotal">0.00</strong><span>TOTAL KM</span></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Quick Actions</h3>
+    <div class="grid">
+      <button onclick="showPage('mapride')">🗺️ Map & Ride</button>
+      <button onclick="showPage('weather')">🌤️ Weather</button>
+      <button onclick="showPage('chat')">💬 Cyclist Chat</button>
+      <button onclick="showPage('safety')">🦺 Bike Safety</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Today's Cycling Tip</h3>
+    <p id="cyclingTip"></p>
+  </div>
+</section>
+
+<!-- MAP -->
+<section class="page" id="mapride">
+  <div class="panel">
+    <h2>🗺️ Map & Ride Tracker</h2>
+    <div id="map"></div>
+    <p class="muted" id="gpsStatus">Allow location permission to use GPS.</p>
+    <div class="row">
+      <button onclick="locateMe()">📍 My Location</button>
+      <button class="btn2" onclick="toggleMapLayer()">🛰️ Satellite / Street</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Destination & Route</h3>
+    <input id="destination" placeholder="Enter destination">
+    <button onclick="findRoute()" style="width:100%">Find Route</button>
+    <p class="muted" id="routeInfo">Enter a destination to find a route.</p>
+  </div>
+  <div class="panel">
+    <h3>Ride Tracker</h3>
+    <div class="grid">
+      <div class="stat"><strong id="rideDistance">0.00</strong><span>DISTANCE KM</span></div>
+      <div class="stat"><strong id="rideElapsed">00:00</strong><span>ELAPSED TIME</span></div>
+      <div class="stat"><strong id="rideSpeed">0.0</strong><span>SPEED KM/H</span></div>
+      <div class="stat"><strong id="rideStatus">Ready</strong><span>STATUS</span></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <button onclick="startRide()">▶ Start</button>
+      <button class="btn2" onclick="pauseRide()">⏸ Pause</button>
+      <button class="btn2" onclick="resumeRide()">▶ Resume</button>
+      <button class="danger" onclick="finishRide()">■ Finish</button>
+    </div>
+  </div>
+</section>
+
+<!-- WEATHER -->
+<section class="page" id="weather">
+  <div class="panel">
+    <h2>🌤️ Cycling Weather</h2>
+    <input id="weatherCity" placeholder="Enter city name">
+    <button onclick="searchWeather()" style="width:100%">Search City</button>
+    <button onclick="weatherAtGPS()" class="btn2" style="width:100%">Use My GPS Location</button>
+    <div id="weatherResult" class="item">Weather information will appear here.</div>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section class="page" id="history">
+  <div class="panel">
+    <h2>📒 Ride History</h2>
+    <div id="historyList"></div>
+    <button class="btn2" onclick="exportHistory()" style="width:100%">Export History as JSON</button>
+  </div>
+</section>
+
+<!-- BADGES -->
+<section class="page" id="badges">
+  <div class="panel"><h2>🏅 Cycling Badges</h2><div id="badgeList"></div></div>
+</section>
+
+<!-- NEARBY -->
+<section class="page" id="nearby">
+  <div class="panel">
+    <h2>🔧 Nearby Bicycle Shops</h2>
+    <button onclick="findNearbyShops()" style="width:100%">Find Nearby Shops</button>
+    <div id="shopList"></div>
+  </div>
+</section>
+
+<!-- SAFETY -->
+<section class="page" id="safety">
+  <div class="panel">
+    <h2>🦺 Bike Safety Checklist</h2>
+    <div id="safetyList"></div>
+    <button onclick="saveSafety()" style="width:100%">Save Checklist</button>
+  </div>
+  <div class="panel">
+    <h3>Before You Ride</h3>
+    <p>Wear a helmet, use lights, check brakes and tires, obey road signs, and tell someone your planned route.</p>
+  </div>
+</section>
+
+<!-- CONTACTS -->
+<section class="page" id="contacts">
+  <div class="panel">
+    <h2>☎️ Emergency Contacts</h2>
+    <input id="contactName" placeholder="Contact name">
+    <input id="contactNumber" placeholder="Phone number">
+    <button onclick="addContact()" style="width:100%">Add Contact</button>
+    <div id="contactList"></div>
+  </div>
+</section>
+
+<!-- CHAT: SIGNED OUT -->
+<section class="page" id="chat">
+  <div id="signedOutArea">
+    <div class="auth-wrap">
+      <div class="auth-logo">🚴💚</div>
+      <div class="auth-heading">Cyclist Community</div>
+      <div class="auth-sub">Connect with cyclists on Alix Cycle World</div>
+
+      <!-- LOGIN SCREEN -->
+      <div class="auth-card" id="loginScreen">
+        <h2>Welcome Back!</h2>
+        <p class="muted">Log in to continue your cycling journey.</p>
+
+        <label for="loginEmail">Email Address</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="Enter your email">
+
+        <label for="loginPassword">Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password">
+
+        <button onclick="loginUser()">Log In</button>
+        <button class="btn2" onclick="forgotPassword()">Forgot Password?</button>
+
+        <div id="loginMessage" class="auth-message"></div>
+
+        <div class="auth-switch">
+          Don't have an account?
+          <button onclick="showAuthScreen('register')">Create Account</button>
+        </div>
+      </div>
+
+      <!-- REGISTER SCREEN -->
+      <div class="auth-card hidden" id="registerScreen">
+        <h2>Create Account</h2>
+        <p class="muted">Join the community and meet other cyclists.</p>
+
+        <label for="registerUsername">Username</label>
+        <input id="registerUsername" maxlength="20" autocomplete="username" placeholder="Choose a username">
+
+        <label for="registerEmail">Email Address</label>
+        <input id="registerEmail" type="email" autocomplete="email" placeholder="Enter your email">
+
+        <label for="registerPassword">Create Password</label>
+        <input id="registerPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters">
+
+        <label for="registerConfirmPassword">Confirm Password</label>
+        <input id="registerConfirmPassword" type="password" autocomplete="new-password" placeholder="Repeat your password">
+
+        <button onclick="registerUser()">Create My Account</button>
+
+        <div id="registerMessage" class="auth-message"></div>
+
+        <div class="auth-switch">
+          Already have an account?
+          <button onclick="showAuthScreen('login')">Log In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGGED-IN COMMUNITY -->
+  <div id="accountArea" class="hidden">
+    <div class="panel">
+      <h2>💬 Cyclist Community</h2>
+      <div class="item">
+        Signed in as <strong id="myUsername"></strong>
+        <p class="muted" id="myEmail"></p>
+        <button class="btn2" onclick="logoutUser()">Log Out</button>
+      </div>
+
+      <h3>Find Cyclists</h3>
+      <input id="userSearch" maxlength="20" placeholder="Search exact username">
+      <button onclick="searchUsers()" style="width:100%">Search Username</button>
+      <div id="userSearchResults"></div>
+
+      <h3>Friend Requests</h3>
+      <div id="requestList"><p class="muted">Loading requests...</p></div>
+
+      <h3>My Friends</h3>
+      <div id="friendList"><p class="muted">Loading friends...</p></div>
+
+      <h3 id="chatTitle">Select a friend to chat</h3>
+      <div id="messages"></div>
+      <div id="chatComposer">
+        <input id="messageInput" maxlength="500" placeholder="Write a message..." disabled>
+        <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="page" id="settings">
+  <div class="panel">
+    <h2>⚙️ Settings & About</h2>
+    <p><strong>App:</strong> Alix Cycle World V7</p>
+    <p><strong>Creator:</strong> Manolito C. Basalo Jr</p>
+    <p><strong>Facebook:</strong> Manolito Basalo</p>
+    <button onclick="location.href='mailto:basalomanolito228@gmail.com?subject=Alix%20Cycle%20World%20Feedback'" style="width:100%">✉️ Contact & Feedback</button>
+    <hr>
+    <p class="muted">Ride history, contacts and safety checklist are saved locally on this device.</p>
+    <button class="danger" onclick="clearLocalData()">Clear Local App Data</button>
+  </div>
+</section>
+
+</main>
+
+<nav id="nav">
+  <button class="active" onclick="showPage('home',this)">🏠 Home</button>
+  <button onclick="showPage('mapride',this)">🗺️ Map</button>
+  <button onclick="showPage('weather',this)">🌤️ Weather</button>
+  <button onclick="showPage('history',this)">📒 History</button>
+  <button onclick="showPage('badges',this)">🏅 Badges</button>
+  <button onclick="showPage('nearby',this)">🔧 Nearby</button>
+  <button onclick="showPage('safety',this)">🦺 Safety</button>
+  <button onclick="showPage('contacts',this)">☎️ Contacts</button>
+  <button onclick="showPage('chat',this)">💬 Chat</button>
+  <button onclick="showPage('settings',this)">⚙️ Settings</button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+"use strict";
+
+/* FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyB2DPXxMKpNqeNRE4ezIqCmLQglIyYIx_0",
+  authDomain: "alix-cycle-world.firebaseapp.com",
+  projectId: "alix-cycle-world",
+  storageBucket: "alix-cycle-world.firebasestorage.app",
+  messagingSenderId: "132898445594",
+  appId: "1:132898445594:web:33c4b75fb56d1f9bf3b4a3",
+  databaseURL: "https://alix-cycle-world-default-rtdb.asia-southeast1.firebasedatabase.app/"
+};
+
+let db=null,auth=null,firebaseReady=false;
+
+try{
+  firebase.initializeApp(firebaseConfig);
+  auth=firebase.auth();
+  db=firebase.database();
+  firebaseReady=true;
+}catch(e){
+  console.error(e);
+  document.getElementById("loginMessage").textContent="Firebase initialization failed. Check your configuration.";
+}
+
+/* AUTH SCREEN SWITCHING */
+function showAuthScreen(screen){
+  document.getElementById("loginScreen").classList.toggle("hidden",screen!=="login");
+  document.getElementById("registerScreen").classList.toggle("hidden",screen!=="register");
+  document.getElementById("loginMessage").textContent="";
+  document.getElementById("registerMessage").textContent="";
+}
+
+function authMessage(screen,text,isError=false){
+  const el=document.getElementById(screen==="login"?"loginMessage":"registerMessage");
+  el.textContent=text;
+  el.className="auth-message "+(isError?"error":"success");
+}
+
+function showPage(id,btn){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));
+
+  if(btn) btn.classList.add("active");
+  else{
+    const names=["home","mapride","weather","history","badges","nearby","safety","contacts","chat","settings"];
+    const index=names.indexOf(id);
+    const buttons=document.querySelectorAll("#nav button");
+    if(index>=0&&buttons[index])buttons[index].classList.add("active");
+  }
+  if(id==="mapride")setTimeout(()=>map&&map.invalidateSize(),100);
+  if(id==="history")renderHistory();
+  if(id==="badges")renderBadges();
+}
+
+function loadJSON(key,fallback){
+  try{
+    const v=localStorage.getItem(key);
+    return v?JSON.parse(v):fallback;
+  }catch(e){return fallback;}
+}
+function saveJSON(key,value){localStorage.setItem(key,JSON.stringify(value));}
+
+let historyData=loadJSON("acw7_history",[]);
+let contacts=loadJSON("acw7_contacts",[]);
+let safetyState=loadJSON("acw7_safety",{});
+let totalDistance=historyData.reduce((s,r)=>s+(Number(r.distance)||0),0);
+
+/* MAP */
+let map=null,streetLayer=null,satelliteLayer=null,usingSatellite=false;
+let currentPosition=null,currentMarker=null,routeLine=null,routeDestination=null;
+let locationWatchId=null;
+
+function initMap(){
+  map=L.map("map").setView([12.8797,121.7740],5);
+  streetLayer=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,attribution:"© OpenStreetMap contributors"
+  }).addTo(map);
+  satelliteLayer=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{
+    maxZoom:19,attribution:"Tiles © Esri"
+  });
+}
+initMap();
+
+function toggleMapLayer(){
+  if(usingSatellite){map.removeLayer(satelliteLayer);streetLayer.addTo(map);}
+  else{map.removeLayer(streetLayer);satelliteLayer.addTo(map);}
+  usingSatellite=!usingSatellite;
+}
+
+function locateMe(){
+  if(!navigator.geolocation)return alert("GPS is not supported.");
+  document.getElementById("gpsStatus").textContent="Getting GPS location...";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    updatePosition(pos);
+    map.setView([pos.coords.latitude,pos.coords.longitude],16);
+  },()=>document.getElementById("gpsStatus").textContent="Location unavailable. Allow GPS permission and use HTTPS.",{
+    enableHighAccuracy:true,timeout:15000,maximumAge:3000
+  });
+}
+
+function updatePosition(pos){
+  const lat=pos.coords.latitude,lng=pos.coords.longitude;
+  currentPosition={lat,lng};
+  document.getElementById("gpsStatus").textContent="GPS: "+lat.toFixed(5)+", "+lng.toFixed(5);
+
+  if(!currentMarker)currentMarker=L.marker([lat,lng]).addTo(map).bindPopup("Your location");
+  else currentMarker.setLatLng([lat,lng]);
+
+  if(ride.active&&!ride.paused){
+    if(ride.lastPoint){
+      const meters=map.distance([ride.lastPoint.lat,ride.lastPoint.lng],[lat,lng]);
+      if(meters<200&&pos.coords.accuracy<60)ride.distance+=meters/1000;
+    }
+    ride.lastPoint={lat,lng};
+    ride.speed=Math.max(0,(pos.coords.speed||0)*3.6);
+    updateRideDisplay();
+  }
+}
+
+async function findRoute(){
+  const destination=document.getElementById("destination").value.trim();
+  const info=document.getElementById("routeInfo");
+  if(!destination)return info.textContent="Enter a destination first.";
+  info.textContent="Searching for destination...";
+
+  try{
+    if(!currentPosition){
+      await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(
+        p=>{updatePosition(p);resolve();},reject,{enableHighAccuracy:true,timeout:12000}
+      ));
+    }
+    const g=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(destination));
+    const places=await g.json();
+    if(!places.length)throw new Error("Destination not found.");
+    const d={lat:+places[0].lat,lng:+places[0].lon};
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${currentPosition.lng},${currentPosition.lat};${d.lng},${d.lat}?overview=full&geometries=geojson`);
+    const data=await r.json();
+    if(!data.routes||!data.routes.length)throw new Error("No route available.");
+    if(routeLine)map.removeLayer(routeLine);
+    if(routeDestination)map.removeLayer(routeDestination);
+    routeLine=L.polyline(data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]),{color:"#6ee7a0",weight:5}).addTo(map);
+    routeDestination=L.marker([d.lat,d.lng]).addTo(map).bindPopup(places[0].display_name);
+    map.fitBounds(routeLine.getBounds(),{padding:[25,25]});
+    info.textContent="Route distance: "+(data.routes[0].distance/1000).toFixed(2)+" km. Note: route uses a general road-routing service, not a bicycle-specific route.";
+  }catch(e){info.textContent=e.message||"Could not find route.";}
+}
+
+/* RIDE TRACKER */
+let ride={active:false,paused:false,startTime:0,elapsedBeforePause:0,distance:0,speed:0,lastPoint:null};
+let rideTimer=null;
+
+function startRide(){
+  if(ride.active)return alert("A ride is already active.");
+  ride={active:true,paused:false,startTime:Date.now(),elapsedBeforePause:0,distance:0,speed:0,lastPoint:currentPosition};
+  document.getElementById("rideStatus").textContent="Riding";
+  startGPSWatch();
+  rideTimer=setInterval(updateRideDisplay,1000);
+  updateRideDisplay();
+}
+function pauseRide(){
+  if(!ride.active||ride.paused)return;
+  ride.elapsedBeforePause+=Date.now()-ride.startTime;
+  ride.paused=true;ride.speed=0;
+  if(locationWatchId!==null){navigator.geolocation.clearWatch(locationWatchId);locationWatchId=null;}
+  document.getElementById("rideStatus").textContent="Paused";
+  updateRideDisplay();
+}
+function resumeRide(){
+  if(!ride.active||!ride.paused)return;
+  ride.paused=false;ride.startTime=Date.now();ride.lastPoint=currentPosition;
+  document.getElementById("rideStatus").textContent="Riding";
+  startGPSWatch();updateRideDisplay();
+}
+function startGPSWatch(){
+  if(!navigator.geolocation)return;
+  if(locationWatchId!==null)navigator.geolocation.clearWatch(locationWatchId);
+  locationWatchId=navigator.geolocation.watchPosition(updatePosition,()=>{},{
+    enableHighAccuracy:true,maximumAge:1000,timeout:15000
+  });
+}
+function getElapsedMs(){
+  return !ride.active?0:ride.elapsedBeforePause+(ride.paused?0:Date.now()-ride.startTime);
+}
+function formatTime(ms){
+  const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;
+  return h>0?[h,m,sec].map(x=>String(x).padStart(2,"0")).join(":"):String(m).padStart(2,"0")+":"+String(sec).padStart(2,"0");
+}
+function updateRideDisplay(){
+  document.getElementById("rideDistance").textContent=ride.distance.toFixed(2);
+  document.getElementById("rideElapsed").textContent=formatTime(getElapsedMs());
+  document.getElementById("rideSpeed").textContent=ride.speed.toFixed(1);
+  document.getElementById("homeDistance").textContent=ride.distance.toFixed(2);
+  document.getElementById("homeTime").textContent=formatTime(getElapsedMs());
+}
+function finishRide(){
+  if(!ride.active)return alert("Start a ride first.");
+  const record={date:new Date().toISOString(),distance:+ride.distance.toFixed(2),duration:Math.floor(getElapsedMs()/1000)};
+  historyData.unshift(record);saveJSON("acw7_history",historyData);totalDistance+=record.distance;
+  ride.active=false;ride.paused=false;ride.speed=0;
+  if(locationWatchId!==null){navigator.geolocation.clearWatch(locationWatchId);locationWatchId=null;}
+  if(rideTimer){clearInterval(rideTimer);rideTimer=null;}
+  document.getElementById("rideStatus").textContent="Finished";
+  updateRideDisplay();updateHomeStats();renderHistory();renderBadges();
+  alert("Ride saved! Distance: "+record.distance+" km");
+}
+function updateHomeStats(){
+  document.getElementById("homeRides").textContent=historyData.length;
+  document.getElementById("homeTotal").textContent=totalDistance.toFixed(2);
+}
+
+/* HISTORY AND BADGES */
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function renderHistory(){
+  const el=document.getElementById("historyList");
+  if(!historyData.length){el.innerHTML='<p class="muted">No rides recorded yet.</p>';return;}
+  el.innerHTML=historyData.map(r=>`<div class="item"><strong>${escapeHTML(new Date(r.date).toLocaleString())}</strong><p>Distance: ${Number(r.distance).toFixed(2)} km</p><p>Duration: ${formatTime(Number(r.duration)*1000)}</p></div>`).join("");
+}
+function exportHistory(){
+  const blob=new Blob([JSON.stringify(historyData,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="alix-cycle-world-history.json";a.click();URL.revokeObjectURL(url);
+}
+function renderBadges(){
+  const rides=historyData.length,km=totalDistance;
+  const list=[["🚴 First Ride",rides>=1],["🛣️ 10 KM Cyclist",km>=10],["🏅 50 KM Cyclist",km>=50],["🌟 100 KM Cyclist",km>=100],["🔥 5 Rides Completed",rides>=5],["💚 10 Rides Completed",rides>=10]];
+  document.getElementById("badgeList").innerHTML=list.map(b=>`<span class="badge" style="opacity:${b[1]?1:.4}">${b[0]} ${b[1]?"✓":"🔒"}</span>`).join("");
+}
+
+/* WEATHER */
+async function fetchWeather(lat,lng,label){
+  const box=document.getElementById("weatherResult");box.textContent="Loading weather...";
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&timezone=auto`;
+    const res=await fetch(url);if(!res.ok)throw new Error("Weather service unavailable");
+    const w=(await res.json()).current;
+    box.innerHTML=`<h3>${escapeHTML(label)}</h3><div class="grid"><div class="stat"><strong>${w.temperature_2m}°C</strong><span>Temperature</span></div><div class="stat"><strong>${w.apparent_temperature}°C</strong><span>Feels like</span></div><div class="stat"><strong>${w.wind_speed_10m}</strong><span>Wind km/h</span></div><div class="stat"><strong>${w.relative_humidity_2m}%</strong><span>Humidity</span></div></div><p>Precipitation: ${w.precipitation} mm</p>`;
+  }catch(e){box.textContent=e.message||"Could not load weather.";}
+}
+function weatherAtGPS(){
+  navigator.geolocation.getCurrentPosition(p=>fetchWeather(p.coords.latitude,p.coords.longitude,"Your GPS Location"),()=>alert("Allow GPS permission."));
+}
+async function searchWeather(){
+  const city=document.getElementById("weatherCity").value.trim();if(!city)return alert("Enter a city.");
+  try{
+    const res=await fetch("https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name="+encodeURIComponent(city));
+    const d=await res.json();if(!d.results||!d.results.length)throw new Error("City not found.");
+    const p=d.results[0];fetchWeather(p.latitude,p.longitude,[p.name,p.admin1,p.country].filter(Boolean).join(", "));
+  }catch(e){document.getElementById("weatherResult").textContent=e.message;}
+}
+
+/* NEARBY SHOPS */
+async function findNearbyShops(){
+  const box=document.getElementById("shopList");box.textContent="Searching...";
+  if(!currentPosition){
+    try{await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>{updatePosition(p);resolve();},reject,{enableHighAccuracy:true,timeout:12000}));}
+    catch(e){box.textContent="Please allow GPS location.";return;}
+  }
+  const {lat,lng}=currentPosition;
+  const query=`[out:json][timeout:20];(node["shop"="bicycle"](around:10000,${lat},${lng});way["shop"="bicycle"](around:10000,${lat},${lng}););out center tags;`;
+  try{
+    const res=await fetch("https://overpass-api.de/api/interpreter",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:"data="+encodeURIComponent(query)});
+    const d=await res.json();if(!d.elements.length){box.textContent="No bicycle shops found.";return;}
+    box.innerHTML=d.elements.slice(0,25).map(x=>{
+      const t=x.tags||{},a=x.lat??x.center?.lat,b=x.lon??x.center?.lon;
+      return `<div class="item"><strong>${escapeHTML(t.name||"Bicycle Shop")}</strong><p class="muted">${escapeHTML(t["addr:street"]||"Address not listed")}</p><button onclick="openMapPoint(${a},${b})">Show on Map</button></div>`;
+    }).join("");
+  }catch(e){box.textContent="Could not load nearby shops.";}
+}
+function openMapPoint(lat,lng){showPage("mapride");map.setView([lat,lng],17);L.marker([lat,lng]).addTo(map).bindPopup("Bicycle shop").openPopup();}
+
+/* SAFETY */
+const safetyItems=["Helmet secured properly","Brakes working","Tires checked","Front light working","Rear light or reflector visible","Water bottle ready","Phone charged","Emergency contact available"];
+function renderSafety(){
+  document.getElementById("safetyList").innerHTML=safetyItems.map((x,i)=>`<label><input style="width:auto;margin-right:8px" type="checkbox" id="safe${i}" ${safetyState[i]?"checked":""}>${x}</label>`).join("");
+}
+function saveSafety(){
+  safetyItems.forEach((x,i)=>safetyState[i]=document.getElementById("safe"+i).checked);
+  saveJSON("acw7_safety",safetyState);alert("Safety checklist saved.");
+}
+renderSafety();
+
+/* CONTACTS */
+function renderContacts(){
+  const box=document.getElementById("contactList");
+  if(!contacts.length){box.innerHTML='<p class="muted">No contacts saved.</p>';return;}
+  box.innerHTML=contacts.map((c,i)=>`<div class="item"><strong>${escapeHTML(c.name)}</strong><p>${escapeHTML(c.number)}</p><div class="row"><a href="tel:${encodeURIComponent(c.number)}"><button>Call</button></a><button class="danger" onclick="deleteContact(${i})">Delete</button></div></div>`).join("");
+}
+function addContact(){
+  const name=document.getElementById("contactName").value.trim(),number=document.getElementById("contactNumber").value.trim();
+  if(!name||!number)return alert("Enter name and number.");
+  contacts.push({name,number});saveJSON("acw7_contacts",contacts);
+  document.getElementById("contactName").value="";document.getElementById("contactNumber").value="";renderContacts();
+}
+function deleteContact(i){
+  if(!confirm("Delete contact?"))return;
+  contacts.splice(i,1);saveJSON("acw7_contacts",contacts);renderContacts();
+}
+
+/* FIREBASE AUTH */
+let currentUser=null,myProfile=null,activeFriendId=null;
+let activeChatRef=null,activeFriendsRef=null,activeRequestsRef=null,profileListener=null;
+
+function cleanUsername(s){return s.trim().replace(/^@/,"");}
+function validUsername(s){return /^[a-zA-Z0-9_]{3,20}$/.test(s);}
+function usernameKey(s){return cleanUsername(s).toLowerCase();}
+
+function firebaseErrorMessage(e){
+  const m={
+    "auth/email-already-in-use":"This email already has an account.",
+    "auth/invalid-email":"Enter a valid email address.",
+    "auth/weak-password":"Password must be at least 6 characters.",
+    "auth/user-not-found":"Account not found.",
+    "auth/wrong-password":"Incorrect email or password.",
+    "auth/invalid-credential":"Incorrect login details.",
+    "auth/network-request-failed":"Network error. Check your internet.",
+    "auth/operation-not-allowed":"Enable Email/Password in Firebase Authentication.",
+    "PERMISSION_DENIED":"Database rules denied access. Check Firebase rules."
+  };
+  return m[e.code]||e.message||"Something went wrong.";
+}
+
+async function registerUser(){
+  if(!firebaseReady)return authMessage("register","Firebase is not initialized.",true);
+
+  const username=cleanUsername(document.getElementById("registerUsername").value);
+  const email=document.getElementById("registerEmail").value.trim();
+  const password=document.getElementById("registerPassword").value;
+  const confirmPassword=document.getElementById("registerConfirmPassword").value;
+
+  if(!username||!email||!password||!confirmPassword)return authMessage("register","Please fill in all fields.",true);
+  if(!validUsername(username))return authMessage("register","Username must be 3–20 letters, numbers or underscores.",true);
+  if(password.length<6)return authMessage("register","Password must be at least 6 characters.",true);
+  if(password!==confirmPassword)return authMessage("register","Passwords do not match.",true);
+
+  authMessage("register","Creating your account...");
+
+  let reservedKey=null;
+  try{
+    const key=usernameKey(username);
+    const keyRef=db.ref("usernameIndex/"+key);
+    const result=await keyRef.transaction(v=>v===null?"__RESERVED__":undefined);
+    if(!result.committed)throw new Error("Username may already be taken. Try another.");
+    reservedKey=key;
+
+    const credential=await auth.createUserWithEmailAndPassword(email,password);
+    const uid=credential.user.uid;
+
+    await db.ref("users/"+uid).set({
+      username:username,
+      usernameKey:key,
+      email:email,
+      createdAt:firebase.database.ServerValue.TIMESTAMP
+    });
+
+    await keyRef.set(uid);
+    authMessage("register","Account created! Welcome to Alix Cycle World.");
+  }catch(e){
+    if(reservedKey){
+      try{await db.ref("usernameIndex/"+reservedKey).transaction(v=>v==="__RESERVED__"?null:v);}catch(_){}
+    }
+    authMessage("register",firebaseErrorMessage(e),true);
+  }
+}
+
+async function loginUser(){
+  if(!firebaseReady)return authMessage("login","Firebase is not initialized.",true);
+  const email=document.getElementById("loginEmail").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  if(!email||!password)return authMessage("login","Enter your email and password.",true);
+
+  authMessage("login","Logging in...");
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+    authMessage("login","Login successful!");
+  }catch(e){authMessage("login",firebaseErrorMessage(e),true);}
+}
+
+async function forgotPassword(){
+  if(!firebaseReady)return;
+  const email=document.getElementById("loginEmail").value.trim();
+  if(!email)return authMessage("login","Enter your email first.",true);
+  try{
+    await auth.sendPasswordResetEmail(email);
+    authMessage("login","If the account exists, a password reset email will be sent.");
+  }catch(e){authMessage("login",firebaseErrorMessage(e),true);}
+}
+function logoutUser(){if(auth)auth.signOut();}
+
+function detachChatListeners(){
+  if(activeChatRef)activeChatRef.off();
+  if(activeFriendsRef)activeFriendsRef.off();
+  if(activeRequestsRef)activeRequestsRef.off();
+  if(profileListener&&currentUser)db.ref("users/"+currentUser.uid).off("value",profileListener);
+  activeChatRef=null;activeFriendsRef=null;activeRequestsRef=null;profileListener=null;
+}
+
+if(firebaseReady){
+  auth.onAuthStateChanged(user=>{
+    detachChatListeners();
+    currentUser=user;myProfile=null;activeFriendId=null;
+
+    const signedIn=!!user;
+    document.getElementById("signedOutArea").classList.toggle("hidden",signedIn);
+    document.getElementById("accountArea").classList.toggle("hidden",!signedIn);
+    document.getElementById("topStatus").textContent=signedIn?"Signed in • Cyclist Community":"Your cycling companion";
+
+    if(!user){
+      document.getElementById("messages").innerHTML="";
+      document.getElementById("chatTitle").textContent="Select a friend to chat";
+      document.getElementById("messageInput").disabled=true;
+      document.getElementById("sendButton").disabled=true;
+      return;
+    }
+
+    document.getElementById("myEmail").textContent=user.email||"";
+    profileListener=snap=>{
+      myProfile=snap.val()||{};
+      document.getElementById("myUsername").textContent=myProfile.username||"Cyclist";
+    };
+    db.ref("users/"+user.uid).on("value",profileListener);
+    listenForFriends();
+    listenForRequests();
+  });
+}
+
+/* SEARCH CYCLISTS */
+async function searchUsers(){
+  if(!currentUser)return alert("Log in first.");
+  const username=cleanUsername(document.getElementById("userSearch").value);
+  const box=document.getElementById("userSearchResults");
+  if(!validUsername(username)){box.textContent="Enter a valid username.";return;}
+  box.textContent="Searching...";
+
+  try{
+    const snap=await db.ref("usernameIndex/"+usernameKey(username)).get();
+    const uid=snap.val();
+    if(!uid||uid==="__RESERVED__"){box.textContent="Username not found.";return;}
+    if(uid===currentUser.uid){box.textContent="That is your own username.";return;}
+
+    const profileSnap=await db.ref("users/"+uid).get();
+    if(!profileSnap.exists()){box.textContent="Profile unavailable.";return;}
+    const profile=profileSnap.val();
+    const friendSnap=await db.ref("friends/"+currentUser.uid+"/"+uid).get();
+    const requestSnap=await db.ref("friendRequests/"+uid+"/"+currentUser.uid).get();
+
+    let action=friendSnap.exists()
+      ?'<button class="btn2" disabled>Already Friends</button>'
+      :requestSnap.exists()
+      ?'<button class="btn2" disabled>Request Sent</button>'
+      :`<button onclick="sendFriendRequest('${uid}')">Add Friend</button>`;
+
+    box.innerHTML=`<div class="item"><strong>@${escapeHTML(profile.username||"Cyclist")}</strong><p class="muted">Alix Cycle World cyclist</p>${action}</div>`;
+  }catch(e){box.textContent=firebaseErrorMessage(e);}
+}
+
+async function sendFriendRequest(uid){
+  if(!currentUser||uid===currentUser.uid)return;
+  try{
+    const f=await db.ref("friends/"+currentUser.uid+"/"+uid).get();
+    if(f.exists())return alert("Already friends.");
+    const profile=await db.ref("users/"+uid).get();
+    if(!profile.exists())return alert("User not found.");
+    const username=myProfile?.username||"Cyclist";
+    await db.ref("friendRequests/"+uid+"/"+currentUser.uid).set({
+      from:currentUser.uid,
+      username:username,
+      createdAt:firebase.database.ServerValue.TIMESTAMP
+    });
+    alert("Friend request sent.");
+    searchUsers();
+  }catch(e){alert(firebaseErrorMessage(e));}
+}
+
+/* FRIEND REQUESTS */
+function listenForRequests(){
+  activeRequestsRef=db.ref("friendRequests/"+currentUser.uid);
+  activeRequestsRef.on("value",snap=>{
+    const data=snap.val()||{},ids=Object.keys(data),box=document.getElementById("requestList");
+    if(!ids.length){box.innerHTML='<p class="muted">No pending requests.</p>';return;}
+    box.innerHTML=ids.map(uid=>`<div class="item"><strong>@${escapeHTML(data[uid].username||"Cyclist")}</strong><div class="row" style="margin-top:8px"><button onclick="acceptFriendRequest('${uid}')">Accept</button><button class="danger" onclick="declineFriendRequest('${uid}')">Decline</button></div></div>`).join("");
+  },e=>document.getElementById("requestList").textContent=firebaseErrorMessage(e));
+}
+
+async function acceptFriendRequest(uid){
+  try{
+    const req=await db.ref("friendRequests/"+currentUser.uid+"/"+uid).get();
+    if(!req.exists())return alert("Request no longer exists.");
+    const other=await db.ref("users/"+uid).get();
+    if(!other.exists())return alert("User profile not found.");
+    const myName=myProfile?.username||"Cyclist";
+    const otherName=other.val().username||"Cyclist";
+    const updates={};
+    updates["friends/"+currentUser.uid+"/"+uid]={uid,username:otherName,createdAt:firebase.database.ServerValue.TIMESTAMP};
+    updates["friends/"+uid+"/"+currentUser.uid]={uid:currentUser.uid,username:myName,createdAt:firebase.database.ServerValue.TIMESTAMP};
+    updates["friendRequests/"+currentUser.uid+"/"+uid]=null;
+    await db.ref().update(updates);
+  }catch(e){alert(firebaseErrorMessage(e));}
+}
+
+async function declineFriendRequest(uid){
+  try{await db.ref("friendRequests/"+currentUser.uid+"/"+uid).remove();}
+  catch(e){alert(firebaseErrorMessage(e));}
+}
+
+/* FRIENDS */
+function listenForFriends(){
+  activeFriendsRef=db.ref("friends/"+currentUser.uid);
+  activeFriendsRef.on("value",snap=>{
+    const data=snap.val()||{},ids=Object.keys(data),box=document.getElementById("friendList");
+    if(!ids.length){box.innerHTML='<p class="muted">No friends yet. Search a username above.</p>';return;}
+    box.innerHTML=ids.map(uid=>`<div class="item"><div class="row"><strong>@${escapeHTML(data[uid].username||"Cyclist")}</strong><button onclick="openFriendChat('${uid}')">Chat</button></div></div>`).join("");
+  },e=>document.getElementById("friendList").textContent=firebaseErrorMessage(e));
+}
+
+/* PRIVATE MESSAGES */
+function makeChatId(a,b){return[a,b].sort().join("_");}
+
+async function openFriendChat(uid){
+  if(!currentUser||uid===currentUser.uid)return;
+  try{
+    const friendSnap=await db.ref("friends/"+currentUser.uid+"/"+uid).get();
+    if(!friendSnap.exists())return alert("You can only chat with accepted friends.");
+    if(activeChatRef)activeChatRef.off();
+
+    activeFriendId=uid;
+    const friend=friendSnap.val();
+    document.getElementById("chatTitle").textContent="Chat with @"+(friend.username||"Cyclist");
+    document.getElementById("messageInput").disabled=false;
+    document.getElementById("sendButton").disabled=false;
+    document.getElementById("messages").innerHTML='<p class="muted">Loading messages...</p>';
+
+    activeChatRef=db.ref("privateMessages/"+makeChatId(currentUser.uid,uid));
+    activeChatRef.limitToLast(100).on("value",snap=>{
+      const data=snap.val()||{},ids=Object.keys(data).sort((a,b)=>(data[a].createdAt||0)-(data[b].createdAt||0));
+      const box=document.getElementById("messages");
+      if(!ids.length){box.innerHTML='<p class="muted">No messages yet. Say hello!</p>';return;}
+      box.innerHTML=ids.map(id=>{
+        const m=data[id],mine=m.sender===currentUser.uid;
+        return `<div class="msg ${mine?"mine":""}"><small>${escapeHTML(m.username||"Cyclist")} · ${m.createdAt?new Date(m.createdAt).toLocaleTimeString():"Sending..."}</small><div>${escapeHTML(m.text||"")}</div></div>`;
+      }).join("");
+      box.scrollTop=box.scrollHeight;
+    },e=>document.getElementById("messages").textContent=firebaseErrorMessage(e));
+  }catch(e){alert(firebaseErrorMessage(e));}
+}
+
+async function sendMessage(){
+  if(!currentUser||!activeFriendId||!activeChatRef)return alert("Select a friend first.");
+  const input=document.getElementById("messageInput"),text=input.value.trim();
+  if(!text)return;
+  if(text.length>500)return alert("Maximum 500 characters.");
+
+  try{
+    const friend=await db.ref("friends/"+currentUser.uid+"/"+activeFriendId).get();
+    if(!friend.exists())return alert("You are no longer friends.");
+    await activeChatRef.push({
+      sender:currentUser.uid,
+      username:myProfile?.username||"Cyclist",
+      text:text,
+      createdAt:firebase.database.ServerValue.TIMESTAMP
+    });
+    input.value="";
+  }catch(e){alert(firebaseErrorMessage(e));}
+}
+
+document.getElementById("messageInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();sendMessage();}
+});
+
+/* LOCAL DATA CLEAR */
+function clearLocalData(){
+  if(!confirm("Clear local ride history, contacts and checklist? Firebase account and messages will not be deleted."))return;
+  ["acw7_history","acw7_contacts","acw7_safety"].forEach(k=>localStorage.removeItem(k));
+  historyData=[];contacts=[];safetyState={};totalDistance=0;
+  updateHomeStats();renderHistory();renderBadges();renderContacts();renderSafety();
+}
+
+const tips=[
+  "Wear a properly fitted helmet and make yourself visible.",
+  "Check your tire pressure and brakes before riding.",
+  "Use front and rear lights when visibility is poor.",
+  "Carry water and take breaks when needed.",
+  "Follow traffic laws and signal before turning."
+];
+document.getElementById("cyclingTip").textContent=tips[Math.floor(Math.random()*tips.length)];
+
+renderHistory();updateHomeStats();renderBadges();renderContacts();
+</script>
+</body>
+</html>
